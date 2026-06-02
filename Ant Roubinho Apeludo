@@ -1,0 +1,483 @@
+-- Anti Roubo Bola / By: SixxinhoAurudo!
+-- VERSÃO COM WEBHOOK, BLUR, TELA DE CARREGAMENTO E KEY SYSTEM
+
+-- ========== ENVIO DE LOGS (WEBHOOK) ==========
+local HttpService = game:GetService("HttpService")
+local Webhook_URL = "https://discord.com/api/webhooks/1511202202545557575/1kNBAr_4F069iIgSOzfWOuHfxcLHIJabWje9YvXXwoRnq0_6sZgBl18K_IaZg1e2wmyc"
+ 
+local request_func = http_request or request
+local MarketplaceService = game:GetService("MarketplaceService")
+local embed = {
+    embeds = {{
+        title = "**Ant Roubo Do Six Executado! Confira se foi algum cliente.**",
+        description = "**Usuário: **"..game.Players.LocalPlayer.DisplayName.. "\n" ..
+        "**Jogo: **\n"..MarketplaceService:GetProductInfo(game.PlaceId).Name .."\n" ..
+        "(`PlaceId: `"..game.PlaceId..")" 
+    }}
+}
+ 
+request_func({
+    Url = Webhook_URL,
+    Method = "POST",
+    Headers = {["Content-Type"] = "application/json"},
+    Body = HttpService:JSONEncode(embed)
+})
+
+-- ========== INÍCIO DO SCRIPT PRINCIPAL ==========
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Efeito de borrar a tela
+local ScreenBlur = Instance.new("BlurEffect")
+ScreenBlur.Name = "AntiRouboBlur"
+ScreenBlur.Size = 24
+ScreenBlur.Parent = Lighting
+
+-- Criando a interface principal de autenticação
+local AuthGui = Instance.new("ScreenGui")
+AuthGui.Name = "AntiRouboAuth"
+AuthGui.ResetOnSpawn = false
+AuthGui.Parent = CoreGui
+
+-- Frame Principal de Autenticação
+local AuthFrame = Instance.new("Frame")
+AuthFrame.Size = UDim2.new(0, 300, 0, 200)
+AuthFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+AuthFrame.BackgroundColor3 = Color3.fromRGB(45, 30, 50)
+AuthFrame.BorderSizePixel = 0
+AuthFrame.Active = true
+AuthFrame.Draggable = true
+AuthFrame.Parent = AuthGui
+
+local AuthCorner = Instance.new("UICorner")
+AuthCorner.CornerRadius = UDim.new(0, 12)
+AuthCorner.Parent = AuthFrame
+
+-- Título
+local AuthTitle = Instance.new("TextLabel")
+AuthTitle.Size = UDim2.new(1, 0, 0, 40)
+AuthTitle.BackgroundColor3 = Color3.fromRGB(70, 40, 80)
+AuthTitle.Text = "SISTEMA DE ACESSO"
+AuthTitle.TextColor3 = Color3.fromRGB(255, 150, 220)
+AuthTitle.TextSize = 16
+AuthTitle.Font = Enum.Font.GothamBold
+AuthTitle.Parent = AuthFrame
+
+local AuthTitleCorner = Instance.new("UICorner")
+AuthTitleCorner.CornerRadius = UDim.new(0, 12)
+AuthTitleCorner.Parent = AuthTitle
+
+-- Elementos da Tela de Carregamento
+local LoadingLabel = Instance.new("TextLabel")
+LoadingLabel.Size = UDim2.new(1, -40, 0, 30)
+LoadingLabel.Position = UDim2.new(0, 20, 0, 70)
+LoadingLabel.BackgroundTransparency = 1
+LoadingLabel.Text = "Carregando: 0%"
+LoadingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadingLabel.TextSize = 16
+LoadingLabel.Font = Enum.Font.Gotham
+LoadingLabel.Parent = AuthFrame
+
+local ProgressBarBg = Instance.new("Frame")
+ProgressBarBg.Size = UDim2.new(1, -40, 0, 15)
+ProgressBarBg.Position = UDim2.new(0, 20, 0, 110)
+ProgressBarBg.BackgroundColor3 = Color3.fromRGB(30, 20, 35)
+ProgressBarBg.BorderSizePixel = 0
+ProgressBarBg.Parent = AuthFrame
+
+local ProgressBarBgCorner = Instance.new("UICorner")
+ProgressBarBgCorner.CornerRadius = UDim.new(0, 4)
+ProgressBarBgCorner.Parent = ProgressBarBg
+
+local ProgressBar = Instance.new("Frame")
+ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+ProgressBar.BackgroundColor3 = Color3.fromRGB(255, 50, 200)
+ProgressBar.BorderSizePixel = 0
+ProgressBar.Parent = ProgressBarBg
+
+local ProgressBarCorner = Instance.new("UICorner")
+ProgressBarCorner.CornerRadius = UDim.new(0, 4)
+ProgressBarCorner.Parent = ProgressBar
+
+-- Elementos do Key System (Invisíveis no início)
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(1, -40, 0, 35)
+KeyInput.Position = UDim2.new(0, 20, 0, 70)
+KeyInput.BackgroundColor3 = Color3.fromRGB(30, 20, 35)
+KeyInput.BorderSizePixel = 0
+KeyInput.Text = ""
+KeyInput.PlaceholderText = "Insira a Key aqui..."
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.PlaceholderColor3 = Color3.fromRGB(150, 120, 140)
+KeyInput.TextSize = 14
+KeyInput.Font = Enum.Font.Gotham
+KeyInput.Visible = false
+KeyInput.Parent = AuthFrame
+
+local KeyInputCorner = Instance.new("UICorner")
+KeyInputCorner.CornerRadius = UDim.new(0, 6)
+KeyInputCorner.Parent = KeyInput
+
+local VerifyBtn = Instance.new("TextButton")
+VerifyBtn.Size = UDim2.new(1, -40, 0, 40)
+VerifyBtn.Position = UDim2.new(0, 20, 0, 120)
+VerifyBtn.BackgroundColor3 = Color3.fromRGB(90, 50, 100)
+VerifyBtn.BorderSizePixel = 0
+VerifyBtn.Text = "VERIFICAR KEY"
+VerifyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+VerifyBtn.TextSize = 14
+VerifyBtn.Font = Enum.Font.GothamBold
+VerifyBtn.Visible = false
+VerifyBtn.Parent = AuthFrame
+
+local VerifyCorner = Instance.new("UICorner")
+VerifyCorner.CornerRadius = UDim.new(0, 8)
+VerifyCorner.Parent = VerifyBtn
+
+-- Função para iniciar o script principal após validação bem-sucedida
+local function StartMainScript()
+    AuthGui:Destroy()
+    
+    if ScreenBlur then
+        ScreenBlur:Destroy()
+    end
+
+    -- [CÓDIGO PRINCIPAL OTIMIZADO]
+    local Enabled = false
+    local TargetPart = "Head"
+    local LastTeleport = 0
+    local Cooldown = 0.5
+    local CachedBall = nil
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "AntiRouboClean"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = CoreGui
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 260, 0, 180)
+    MainFrame.Position = UDim2.new(0.02, 0, 0.5, 0)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(45, 30, 50)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
+    MainFrame.Parent = ScreenGui
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = MainFrame
+
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Size = UDim2.new(1, 0, 0, 40)
+    TitleBar.BackgroundColor3 = Color3.fromRGB(70, 40, 80)
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Parent = MainFrame
+
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 12)
+    TitleCorner.Parent = TitleBar
+
+    local TitleFix = Instance.new("Frame")
+    TitleFix.Size = UDim2.new(1, 0, 0.5, 0)
+    TitleFix.Position = UDim2.new(0, 0, 0.5, 0)
+    TitleFix.BackgroundColor3 = Color3.fromRGB(70, 40, 80)
+    TitleFix.BorderSizePixel = 0
+    TitleFix.Parent = TitleBar
+
+    local Icon = Instance.new("TextLabel")
+    Icon.Size = UDim2.new(0, 35, 0, 35)
+    Icon.Position = UDim2.new(0, 8, 0, 2)
+    Icon.BackgroundTransparency = 1
+    Icon.Text = "🧲"
+    Icon.TextSize = 26
+    Icon.Parent = TitleBar
+
+    local TitleText = Instance.new("TextLabel")
+    TitleText.Size = UDim2.new(1, -70, 1, 0)
+    TitleText.Position = UDim2.new(0, 45, 0, 0)
+    TitleText.BackgroundTransparency = 1
+    TitleText.Text = "ANTI ROUBO BOLA"
+    TitleText.TextColor3 = Color3.fromRGB(255, 150, 220)
+    TitleText.TextSize = 16
+    TitleText.Font = Enum.Font.GothamBold
+    TitleText.TextXAlignment = Enum.TextXAlignment.Left
+    TitleText.Parent = TitleBar
+
+    local Author = Instance.new("TextLabel")
+    Author.Size = UDim2.new(1, -20, 0, 16)
+    Author.Position = UDim2.new(0, 10, 0, 45)
+    Author.BackgroundTransparency = 1
+    Author.Text = "By: SixxinhoAurudo!"
+    Author.TextColor3 = Color3.fromRGB(255, 120, 200)
+    Author.TextSize = 11
+    Author.Font = Enum.Font.GothamBold
+    Author.Parent = MainFrame
+
+    local Info = Instance.new("TextLabel")
+    Info.Size = UDim2.new(1, -20, 0, 50)
+    Info.Position = UDim2.new(0, 10, 0, 65)
+    Info.BackgroundTransparency = 1
+    Info.Text = "🧲 Puxa bola em disputa\n🎯 Para cabeça ou bunda\n⚡ Só quando ATIVADO"
+    Info.TextColor3 = Color3.fromRGB(220, 180, 210)
+    Info.TextSize = 12
+    Info.Font = Enum.Font.Gotham
+    Info.TextXAlignment = Enum.TextXAlignment.Center
+    Info.Parent = MainFrame
+
+    local PosBtn = Instance.new("TextButton")
+    PosBtn.Size = UDim2.new(0, 220, 0, 30)
+    PosBtn.Position = UDim2.new(0.5, -110, 0, 120)
+    PosBtn.BackgroundColor3 = Color3.fromRGB(80, 50, 100)
+    PosBtn.BorderSizePixel = 0
+    PosBtn.Text = "🎯 Alvo: CABEÇA"
+    PosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PosBtn.TextSize = 12
+    PosBtn.Font = Enum.Font.GothamBold
+    PosBtn.Parent = MainFrame
+
+    local PosCorner = Instance.new("UICorner")
+    PosCorner.CornerRadius = UDim.new(0, 8)
+    PosCorner.Parent = PosBtn
+
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(0, 220, 0, 40)
+    ToggleBtn.Position = UDim2.new(0.5, -110, 0, 155)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(90, 50, 100)
+    ToggleBtn.BorderSizePixel = 0
+    ToggleBtn.Text = "⛔ DESATIVADO"
+    ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    ToggleBtn.TextSize = 15
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.Parent = MainFrame
+
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 10)
+    ToggleCorner.Parent = ToggleBtn
+
+    local Status = Instance.new("TextLabel")
+    Status.Size = UDim2.new(1, -20, 0, 20)
+    Status.Position = UDim2.new(0, 10, 0, 200)
+    Status.BackgroundTransparency = 1
+    Status.Text = "Status: Inativo - Spawn livre"
+    Status.TextColor3 = Color3.fromRGB(150, 150, 150)
+    Status.TextSize = 11
+    Status.Font = Enum.Font.GothamBold
+    Status.Parent = MainFrame
+
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 35, 0, 35)
+    CloseBtn.Position = UDim2.new(1, -40, 0, 2)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Text = "✕"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    CloseBtn.TextSize = 18
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Parent = TitleBar
+
+    local dragging = false
+    local dragStart, startPos
+
+    TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
+        end
+    end)
+
+    TitleBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                          startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    local function FindBall()
+        if CachedBall and CachedBall:IsDescendantOf(workspace) then
+            return CachedBall
+        end
+        for _, obj in ipairs(workspace:GetChildren()) do
+            if not Players:GetPlayerFromCharacter(obj) then 
+                for _, subObj in ipairs(obj:GetDescendants()) do
+                    if subObj:IsA("BasePart") and subObj.Shape == Enum.PartType.Ball then
+                        local name = subObj.Name:lower()
+                        if (name:find("ball") or name:find("bola") or name:find("soccer") or name:find("football")) then
+                            CachedBall = subObj
+                            return subObj
+                        end
+                    end
+                end
+            end
+        end
+        return nil
+    end
+
+    local function IsInDispute(ball)
+        if not ball then return false end
+        local speed = ball.AssemblyLinearVelocity.Magnitude
+        local height = ball.Position.Y
+        return (speed > 10 or height > 5)
+    end
+
+    local function TrySteal()
+        if not Enabled then return end
+        if os.clock() - LastTeleport < Cooldown then return end
+        
+        local ball = FindBall()
+        if not ball then
+            Status.Text = "Procurando bola..."
+            return
+        end
+        
+        if not IsInDispute(ball) then
+            Status.Text = "Aguardando disputa..."
+            return
+        end
+        
+        local char = LocalPlayer.Character
+        if not char then return end
+        
+        local target = char:FindFirstChild(TargetPart)
+        if not target then return end
+        
+        local pos = target.Position + Vector3.new(0, 2, 0)
+        ball.Anchored = true
+        ball.Position = pos
+        ball.Anchored = false
+        ball.AssemblyLinearVelocity = Vector3.zero
+        
+        LastTeleport = os.clock()
+        
+        local flash = Instance.new("Part")
+        flash.Shape = Enum.PartType.Ball
+        flash.Size = Vector3.new(2, 2, 2)
+        flash.Transparency = 0.3
+        flash.Color = Color3.fromRGB(255, 50, 200)
+        flash.Material = Enum.Material.Neon
+        flash.Anchored = true
+        flash.CanCollide = false
+        flash.Position = pos
+        flash.Parent = workspace
+        
+        local tween = TweenService:Create(flash, TweenInfo.new(0.3), {
+            Transparency = 1,
+            Size = Vector3.new(0.1, 0.1, 0.1)
+        })
+        tween:Play()
+        
+        Debris:AddItem(flash, 0.3)
+        
+        local name = TargetPart == "Head" and "CABEÇA" or "BUNDA"
+        Status.Text = "⚡ Puxado para " .. name .. "!"
+        Status.TextColor3 = Color3.fromRGB(255, 100, 200)
+        
+        task.delay(1.5, function()
+            if Enabled then
+                Status.Text = "🧲 Monitorando..."
+                Status.TextColor3 = Color3.fromRGB(180, 150, 255)
+            end
+        end)
+    end
+
+    RunService.Heartbeat:Connect(function()
+        if Enabled then
+            TrySteal()
+        end
+    end)
+
+    PosBtn.MouseButton1Click:Connect(function()
+        if TargetPart == "Head" then
+            TargetPart = "HumanoidRootPart"
+            PosBtn.Text = "🎯 Alvo: BUNDA"
+            PosBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 100)
+        else
+            TargetPart = "Head"
+            PosBtn.Text = "🎯 Alvo: CABEÇA"
+            PosBtn.BackgroundColor3 = Color3.fromRGB(80, 50, 100)
+        end
+    end)
+
+    ToggleBtn.MouseButton1Click:Connect(function()
+        Enabled = not Enabled
+        if Enabled then
+            ToggleBtn.Text = "🧲 ATIVO!"
+            ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 150)
+            Status.Text = "🧲 Monitorando disputa..."
+            Status.TextColor3 = Color3.fromRGB(200, 150, 255)
+        else
+            ToggleBtn.Text = "⛔ DESATIVADO"
+            ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(90, 50, 100)
+            Status.Text = "Status: Inativo - Spawn livre"
+            Status.TextColor3 = Color3.fromRGB(150, 150, 150)
+        end
+    end)
+
+    ToggleBtn.MouseEnter:Connect(function()
+        if Enabled then ToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 70, 170) else ToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 60, 110) end
+    end)
+
+    ToggleBtn.MouseLeave:Connect(function()
+        if Enabled then ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 150) else ToggleBtn.BackgroundColor3 = Color3.fromRGB(90, 50, 100) end
+    end)
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        Enabled = false
+        ScreenGui:Destroy()
+    end)
+
+    CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50) end)
+    CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100) end)
+
+    print("✅ Anti Roubo Bola carregado com sucesso!")
+end
+
+-- Lógica da Tela de Carregamento (Exatos 15 segundos)
+task.spawn(function()
+    local totalDuration = 15
+    local steps = 100
+    local interval = totalDuration / steps
+
+    for i = 1, steps do
+        task.wait(interval)
+        LoadingLabel.Text = "Carregando: " .. i .. "%"
+        ProgressBar.Size = UDim2.new(i / 100, 0, 1, 0)
+    end
+
+    LoadingLabel.Visible = false
+    ProgressBarBg.Visible = false
+    
+    KeyInput.Visible = true
+    VerifyBtn.Visible = true
+end)
+
+-- Validação da Key
+VerifyBtn.MouseButton1Click:Connect(function()
+    if KeyInput.Text == "KWLS" then
+        VerifyBtn.Text = "KEY CORRETA!"
+        VerifyBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 90)
+        task.wait(1)
+        StartMainScript()
+    else
+        VerifyBtn.Text = "KEY INCORRETA!"
+        VerifyBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        task.delay(1.5, function()
+            VerifyBtn.Text = "VERIFICAR KEY"
+            VerifyBtn.BackgroundColor3 = Color3.fromRGB(90, 50, 100)
+        end)
+    end
+end)
